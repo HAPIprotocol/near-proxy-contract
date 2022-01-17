@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/Users/serhiirudniev/Documents/Work/hapi/projects/hapi-proxy-near/contract/target/wasm32-unknown-unknown/release/build/typenum-4c83c92f7a28a9e8/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/Users/serhiirudniev/Documents/Work/hapi/projects/hapi-proxy-near/contract/target/wasm32-unknown-unknown/release/build/typenum-4c83c92f7a28a9e8/out/op.rs

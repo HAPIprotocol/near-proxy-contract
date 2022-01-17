@@ -1,0 +1,1 @@
+/Users/serhiirudniev/Documents/Work/hapi/projects/hapi-proxy-near/contract/target/wasm32-unknown-unknown/release/proxy_contract.wasm: /Users/serhiirudniev/Documents/Work/hapi/projects/hapi-proxy-near/contract/src/lib.rs
