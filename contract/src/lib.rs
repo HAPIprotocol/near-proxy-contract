@@ -76,7 +76,6 @@ impl Default for Proxy {
 
 #[near_bindgen]
 impl Proxy {
-
     #[init]
     pub fn new(owner_id: AccountId) -> Self {
         Self {
@@ -115,7 +114,7 @@ impl Proxy {
     pub fn update_reporter(&mut self, reporter_address: AccountId, permission_level: u8) -> bool {
         assert!(
             permission_level <= MAX_PERMISSION_LEVEL,
-            "HapiProxy: Invalid permission level bitch"
+            "HapiProxy: Invalid permission level"
         );
         assert!(
             self.reporters.contains_key(&reporter_address),
@@ -127,7 +126,9 @@ impl Proxy {
 
     pub fn create_address(&mut self, address: AccountId, category: Category, risk: u8) -> bool {
         assert!(
-            self.get_reporter(env::predecessor_account_id()).unwrap() < MAX_PERMISSION_LEVEL,
+            self.get_reporter(env::predecessor_account_id())
+                .expect("HapiProxy: Reporter does not exist")
+                < MAX_PERMISSION_LEVEL,
             "HapiProxy: Invalid permission level"
         );
         assert!(risk <= MAX_RISK, "HapiProxy: Invalid risk");
@@ -136,16 +137,18 @@ impl Proxy {
         true
     }
 
-    pub fn get_address(&self, _address: AccountId) -> (Category, u8) {
+    pub fn get_address(&self, address: AccountId) -> (Category, u8) {
         (
-            self.addresses.get(&_address).unwrap().category,
-            self.addresses.get(&_address).unwrap().risk,
+            self.addresses.get(&address).unwrap().category,
+            self.addresses.get(&address).unwrap().risk,
         )
     } // return risk level and category
 
     pub fn update_address(&mut self, address: AccountId, category: Category, risk: u8) {
         assert!(
-            self.get_reporter(env::predecessor_account_id()).unwrap() < MAX_PERMISSION_LEVEL,
+            self.get_reporter(env::predecessor_account_id())
+                .expect("HapiProxy: Reporter does not exist")
+                < MAX_PERMISSION_LEVEL,
             "HapiProxy: Invalid permission level"
         );
         assert!(risk <= MAX_RISK, "HapiProxy: Invalid risk");
@@ -231,8 +234,3 @@ mod tests {
     }
 }
 
-// near call proxy.contracts.sergei24.testnet new '{"owner_id": "sergei24.testnet"}' --accountId proxy.contracts.sergei24.testnet
-
-//near call proxy.contracts.sergei24.testnet change_owner '{"owner_id": "contracts.sergei24.testnet"}' --accountId proxy.contracts.sergei24.testnet
-//near call proxy.contracts.sergei24.testnet create_reporter '{"reporter_address": "reporter", "permission_level": 1}' --accountId sergei24.testnet
-//near call proxy.contracts.sergei24.testnet
