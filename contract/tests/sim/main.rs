@@ -44,6 +44,20 @@ fn test_get_reporter() {
 }
 
 #[test]
+#[should_panic(expected = "HapiProxy: Reporter already exist")]
+fn test_twice_create_reporter() {
+    let mut context = VMContextBuilder::new();
+    let test_level: u8 = 1;
+    let account_id: AccountId = "alice".to_string();
+    let reporter_id: AccountId = "reporter".to_string();
+    let mut contract = Proxy::new(account_id.clone());
+    testing_env!(context.predecessor_account_id(accounts(0)).build());
+
+    contract.create_reporter(reporter_id.clone(), test_level);
+    contract.create_reporter(reporter_id.clone(), test_level);
+}
+
+#[test]
 fn test_update_reporter() {
     let mut context = VMContextBuilder::new();
     let account_id: AccountId = "alice".to_string();
