@@ -20,10 +20,13 @@ Create constants
 ```
 export NEAR_ENV=testnet
 export CONTRACT_ID=proxy.boca.testnet
+export OWNER_ID=boca.testnet
 ```
 
 First of all - you will need to compile the wasm file of contracts and then deploy it like that
 ```
+cargo build --release --target wasm32-unknown-unknown
+
 near deploy $CONTRACT_ID --wasmFile=contract/target/wasm32-unknown-unknown/release/proxy_contract.wasm
 ```
 Then initialize contract with command where OWNER_ID is your admin UI account. 
@@ -35,33 +38,50 @@ near call $CONTRACT_ID new '{"owner_id": "'$OWNER_ID'"}' --accountId $CONTRACT_I
 
 ## Useful commands:
 
-1. CHANGE OWNER
+1. NEW
 
 ```
-near call $CONTRACT_ID change_owner '{"owner_id": "NEW_OWNER_ID"}' --account_id=$CONTRACT_ID
+near call $CONTRACT_ID new '{"owner_id": "your id"}' --account_id=$OWNER_ID
 ```
 
-2. CREATE REPORTER
+2. CHANGE OWNER
 
 ```
-near call $CONTRACT_ID create_reporter '{"reporter_address": "reporter.id", "permission_level": 2}' --account_id=$CONTRACT_ID
+near call $CONTRACT_ID change_owner '{"owner_id": "NEW_OWNER_ID"}' --account_id=$OWNER_ID
 ```
 
-3. UPDATE REPORTER
+3. CREATE REPORTER
 
 ```
-near call $CONTRACT_ID update_sale_distribute_token_id '{"sale_id": 2, "distribute_token_id": "token.solniechniy.testnet" }' --accountId $CONTRACT_ID
+near call $CONTRACT_ID create_reporter '{"address": "reporter.id", "permission_level": 2}' --account_id=$OWNER_ID
 ```
 
-4. CREATE ADDRESS
+4. UPDATE REPORTER
 
 ```
-near call $CONTRACT_ID update_sale_claim_available '{"sale_id": 0, "claim_available": true }' --accountId $CONTRACT_ID
+near call $CONTRACT_ID update_reporter '{"address": "reporter.id", "permission_level": 1 }' --accountId=$OWNER_ID
 ```
 
-5. UPDATE ADDRESS
+5. GET REPORTER
 
 ```
-near call $CONTRACT_ID update_sale_refund_available '{"sale_id": 0, "refund_available": true }' --accountId $CONTRACT_ID
+near call $CONTRACT_ID get_reporter '{"address": "'$OWNER_ID'" }' --accountId=$OWNER_ID
 ```
 
+6. CREATE ADDRESS
+
+```
+near call $CONTRACT_ID create_address '{"address": "address.id", "category": "Scam", "risk": 6}' --accountId=$OWNER_ID
+```
+
+7. UPDATE ADDRESS
+
+```
+near call $CONTRACT_ID update_address '{"address": "address.id", "category": "WalletService", "risk": 6}' --accountId=$OWNER_ID
+```
+
+8. GET ADDRESS
+
+```
+near call $CONTRACT_ID get_address '{"address": "address.id"}' --accountId=$OWNER_ID
+```
