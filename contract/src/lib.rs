@@ -1,14 +1,11 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{env, near_bindgen, AccountId};
-// use serde::{Deserialize, Serialize};
-use near_sdk::serde::Serialize;
-
-// use near_sdk::{env, log, near_bindgen, AccountId};
 
 use near_sdk::collections::LookupMap;
 
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(crate = "near_sdk::serde")]
-#[derive(BorshDeserialize, BorshSerialize, Serialize, PartialEq)]
 pub enum Category {
     // Wallet service - custodial or mixed wallets
     WalletService,
@@ -50,8 +47,8 @@ pub enum Category {
     ChildAbuse,
 }
 
-#[serde(crate = "near_sdk::serde")]
 #[derive(BorshDeserialize, BorshSerialize, Serialize, PartialEq)]
+#[serde(crate = "near_sdk::serde")]
 pub struct AddressInfo {
     category: Category,
     risk: u8,
@@ -89,7 +86,7 @@ impl Proxy {
         assert_eq!(
             env::predecessor_account_id(),
             self.owner_id,
-            "Only the owner may call this method"
+            "HapiProxy: Only the owner may call this method"
         );
         self.owner_id = owner_id;
     }
@@ -102,54 +99,69 @@ impl Proxy {
         assert_eq!(
             env::predecessor_account_id(),
             self.owner_id,
-            "Only the owner may call this method"
+            "HapiProxy: Only the owner may call this method"
         );
+        assert!(
+            self.reporters.contains_key(&address) == false,
+            "HapiProxy: Reporter already exist"
+        );
+
         self.reporters.insert(&address, &permission_level)
     }
 
-    pub fn get_reporter(&self, reporter_address: AccountId) -> Option<u8> {
-        self.reporters.get(&reporter_address)
+    pub fn get_reporter(&self, address: AccountId) -> u8 {
+        self.reporters
+            .get(&address)
+            .expect("HapiProxy: Reporter does not exist")
     } // return permission level
 
-    pub fn update_reporter(&mut self, reporter_address: AccountId, permission_level: u8) -> bool {
+    pub fn update_reporter(&mut self, address: AccountId, permission_level: u8) -> bool {
         assert!(
             permission_level <= MAX_PERMISSION_LEVEL,
             "HapiProxy: Invalid permission level"
         );
+        assert_eq!(
+            env::predecessor_account_id(),
+            self.owner_id,
+            "HapiProxy: Only the owner may call this method"
+        );
         assert!(
-            self.reporters.contains_key(&reporter_address),
+            self.reporters.contains_key(&address),
             "HapiProxy: Reporter does not exist"
         );
-        self.reporters.insert(&reporter_address, &permission_level);
+        self.reporters.insert(&address, &permission_level);
         true
     }
 
     pub fn create_address(&mut self, address: AccountId, category: Category, risk: u8) -> bool {
+        let reporter_level = self.get_reporter(env::predecessor_account_id());
         assert!(
-            self.get_reporter(env::predecessor_account_id())
-                .expect("HapiProxy: Reporter does not exist")
-                < MAX_PERMISSION_LEVEL,
-            "HapiProxy: Invalid permission level"
+            reporter_level <= MAX_PERMISSION_LEVEL && reporter_level > 1,
+            "HapiProxy: Invalid permission level",
         );
         assert!(risk <= MAX_RISK, "HapiProxy: Invalid risk");
+        assert!(
+            self.addresses.contains_key(&address) == false,
+            "HapiProxy: Address already exist"
+        );
         let address_info = AddressInfo { category, risk };
         self.addresses.insert(&address, &address_info);
         true
     }
 
     pub fn get_address(&self, address: AccountId) -> (Category, u8) {
-        (
-            self.addresses.get(&address).unwrap().category,
-            self.addresses.get(&address).unwrap().risk,
-        )
+        let address_info = self
+            .addresses
+            .get(&address)
+            .expect("HapiProxy: Address does not exist");
+        (address_info.category, address_info.risk)
     } // return risk level and category
 
     pub fn update_address(&mut self, address: AccountId, category: Category, risk: u8) {
+        let reporter_level = self.get_reporter(env::predecessor_account_id());
         assert!(
-            self.get_reporter(env::predecessor_account_id())
-                .expect("HapiProxy: Reporter does not exist")
-                < MAX_PERMISSION_LEVEL,
-            "HapiProxy: Invalid permission level"
+            reporter_level <= MAX_PERMISSION_LEVEL && reporter_level > 1,
+            "HapiProxy: Invalid permission level",
         );
         assert!(risk <= MAX_RISK, "HapiProxy: Invalid risk");
         assert!(
@@ -166,7 +178,6 @@ mod tests {
     use super::*;
 
     use crate::Category;
-    use near_sdk::json_types::ValidAccountId;
     use near_sdk::test_utils::{accounts, VMContextBuilder};
     use near_sdk::testing_env;
     use near_sdk::MockedBlockchain;
@@ -189,10 +200,10 @@ mod tests {
 
         contract.create_reporter(reporter_id.clone(), test_level);
         assert_eq!(
-            contract.get_reporter(reporter_id.clone()).unwrap(),
+            contract.get_reporter(reporter_id.clone()),
             test_level,
             "reporter value is: {}",
-            contract.get_reporter(reporter_id).unwrap().to_string()
+            contract.get_reporter(reporter_id).to_string()
         );
     }
 
@@ -210,10 +221,10 @@ mod tests {
         );
 
         assert_eq!(
-            contract.get_reporter(reporter_id.clone()).unwrap(),
+            contract.get_reporter(reporter_id.clone()),
             2,
             "reporter value is: {}",
-            contract.get_reporter(reporter_id).unwrap().to_string()
+            contract.get_reporter(reporter_id).to_string()
         );
     }
 
@@ -225,12 +236,11 @@ mod tests {
         let mut contract = Proxy::new(account_id.clone());
         testing_env!(context.predecessor_account_id(accounts(0)).build());
         contract.create_reporter(account_id.clone(), 2);
-        contract.create_address(address_id, Category::MiningPool, 7);
-        // assert_eq!(
-        //     contract.get_address(address_id),
-        //     (Category::MiningPool, 7),
-        //     "Address not writed normally"
-        // );
+        contract.create_address(address_id.clone(), Category::MiningPool, 7);
+        assert_eq!(
+            contract.get_address(address_id),
+            (Category::MiningPool, 7),
+            "Address not writed normally"
+        );
     }
 }
-
