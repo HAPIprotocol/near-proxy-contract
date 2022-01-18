@@ -1,78 +1,143 @@
-// pub use near_sdk::json_types::{Base64VecU8, ValidAccountId, WrappedDuration, U64};
-// use near_sdk::serde_json::json;
-// use near_sdk_sim::{call, view, deploy, init_simulator, ContractAccount, UserAccount};
-// use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-// use near_sdk::{env, near_bindgen, AccountId};
-// use proxy_contract::ProxyContract;
+extern crate proxy_contract;
+use near_sdk::test_utils::{accounts, VMContextBuilder};
+use near_sdk::testing_env;
+use near_sdk::AccountId;
+use near_sdk::MockedBlockchain;
+use proxy_contract::Proxy;
 
-// extern crate proxy_contract;
-// near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
-//     COUNTER_BYTES => "../out/main.wasm",
-// }
+#[test]
+#[should_panic(expected = "HapiProxy: Only the owner may call this method")]
+fn test_change_owner() {
+    let mut context = VMContextBuilder::new();
+    let test_level: u8 = 1;
+    let account_id: AccountId = "alice".to_string();
+    let second_account_id: AccountId = "james.bond".to_string();
+    let reporter_id: AccountId = "reporter".to_string();
+    let mut contract = Proxy::new(account_id.clone());
+    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    contract.change_owner(second_account_id);
+    contract.create_reporter(reporter_id.clone(), test_level);
+    assert_eq!(
+        contract.get_reporter(reporter_id.clone()),
+        test_level,
+        "reporter value is: {}",
+        contract.get_reporter(reporter_id).to_string()
+    );
+}
 
-// pub const DEFAULT_GAS: u64 = 300_000_000_000_000;
+#[test]
+fn test_get_reporter() {
+    let mut context = VMContextBuilder::new();
+    let test_level: u8 = 1;
+    let account_id: AccountId = "alice".to_string();
+    let reporter_id: AccountId = "reporter".to_string();
+    let mut contract = Proxy::new(account_id.clone());
+    testing_env!(context.predecessor_account_id(accounts(0)).build());
 
-// fn init() -> (UserAccount, ContractAccount<CounterContract>) {
-//     let contract = new("tester");
-//     assert_eq!(
-//         "tester", self.owner_id,
-//         "Only the owner may call this method"
-//     );
-//     // Deploy the compiled Wasm bytes
-//     let counter: ContractAccount<CounterContract> = deploy!(
-//         contract: CounterContract,
-//         contract_id: "counter".to_string(),
-//         bytes: &COUNTER_BYTES,
-//         signer_account: root
-//     );
+    contract.create_reporter(reporter_id.clone(), test_level);
+    assert_eq!(
+        contract.get_reporter(reporter_id.clone()),
+        test_level,
+        "reporter value is: {}",
+        contract.get_reporter(reporter_id).to_string()
+    );
+}
 
-//     (root, counter)
-// }
+#[test]
+fn test_update_reporter() {
+    let mut context = VMContextBuilder::new();
+    let account_id: AccountId = "alice".to_string();
+    let reporter_id: AccountId = "reporter".to_string();
+    let mut contract = Proxy::new(account_id.clone());
+    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    contract.create_reporter(reporter_id.clone(), 1);
+    assert!(
+        contract.update_reporter(reporter_id.clone(), 2),
+        "Reporter update failed"
+    );
 
-// #[test]
-// fn simulate_add_reporter() {
-//     let account_id: AccountId = "tester".to_string();
-//     let contract = new(account_id);
-//     assert_eq!(
-//         "tester", contract.owner_id,
-//         "Only the owner may call this method"
-//     );
-    // Get number on account that hasn't incremented or decremented
-    // let mut current_num: i8 = view!(counter.get_num()).unwrap_json();
-    // println!("Number before: {}", &current_num);
-    // assert_eq!(&current_num, &0, "Initial number should be zero.");
+    assert_eq!(
+        contract.get_reporter(reporter_id.clone()),
+        2,
+        "reporter value is: {}",
+        contract.get_reporter(reporter_id).to_string()
+    );
+}
 
-    // // Call the increment function
-    // call!(root, counter.increment()).assert_success();
+#[test]
+#[should_panic(expected = "HapiProxy: Only the owner may call this method")]
+fn test_not_owner_updates_reporter() {
+    let mut context = VMContextBuilder::new();
+    let account_id: AccountId = "alice".to_string();
+    let reporter_id: AccountId = "reporter".to_string();
+    let mut contract = Proxy::new(account_id.clone());
+    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    contract.create_reporter(reporter_id.clone(), 1);
+    testing_env!(context.predecessor_account_id(accounts(1)).build());
+    assert!(
+        contract.update_reporter(reporter_id.clone(), 2),
+        "Reporter update failed"
+    );
 
-    // current_num = view!(counter.get_num()).unwrap_json();
-    // println!("Number after first increment: {}", &current_num);
-    // assert_eq!(
-    //     &current_num, &1,
-    //     "After incrementing, the number should be one."
-    // );
+    assert_eq!(
+        contract.get_reporter(reporter_id.clone()),
+        2,
+        "reporter value is: {}",
+        contract.get_reporter(reporter_id).to_string()
+    );
+}
 
-    // // Now use the non-macro approach to increment the number.
-    // root.call(
-    //     counter.account_id(),
-    //     "increment",
-    //     &json!({}).to_string().into_bytes(),
-    //     DEFAULT_GAS,
-    //     0, // attached deposit
-    // )
-    // .assert_success();
+#[test]
+fn test_get_address() {
+    let mut context = VMContextBuilder::new();
+    let account_id: AccountId = "alice".to_string();
+    let address_id: AccountId = "MiningPool".to_string();
+    let mut contract = Proxy::new(account_id.clone());
+    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    contract.create_reporter(account_id.clone(), 2);
+    contract.create_address(address_id.clone(), proxy_contract::Category::MiningPool, 7);
+    assert_eq!(
+        contract.get_address(address_id),
+        (proxy_contract::Category::MiningPool, 7),
+        "Address not writed normally"
+    );
+}
 
-    // // Similarly, use the non-macro approach to check the value.
-    // current_num = root
-    //     .view(
-    //         counter.account_id(),
-    //         "get_num",
-    //         &json!({}).to_string().into_bytes(),
-    //     )
-    //     .unwrap_json();
-    // println!("Number after second increment: {}", &current_num);
-    // assert_eq!(
-    //     &current_num, &2,
-    //     "After incrementing twice, the number should be two."
-    // );
-// }
+#[test]
+#[should_panic(expected = "HapiProxy: Invalid permission level")]
+fn test_invalid_permission_level() {
+    let mut context = VMContextBuilder::new();
+    let account_id: AccountId = "alice".to_string();
+    let address_id: AccountId = "MiningPool".to_string();
+    let mut contract = Proxy::new(account_id.clone());
+    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    contract.create_reporter(account_id.clone(), 1);
+    contract.create_address(address_id.clone(), proxy_contract::Category::MiningPool, 7);
+    contract.get_address(address_id);
+}
+
+#[test]
+#[should_panic(expected = "HapiProxy: Address does not exist")]
+fn test_get_wrong_address() {
+    let mut context = VMContextBuilder::new();
+    let account_id: AccountId = "alice".to_string();
+    let address_id: AccountId = "MiningPool".to_string();
+    let wrong_address: AccountId = "wrong_address".to_string();
+    let mut contract = Proxy::new(account_id.clone());
+    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    contract.create_reporter(account_id.clone(), 2);
+    contract.create_address(address_id.clone(), proxy_contract::Category::MiningPool, 7);
+    contract.get_address(wrong_address.clone());
+}
+
+#[test]
+#[should_panic(expected = "HapiProxy: Invalid risk")]
+fn test_create_address_wrong_risk() {
+    let mut context = VMContextBuilder::new();
+    let account_id: AccountId = "alice".to_string();
+    let address_id: AccountId = "MiningPool".to_string();
+    let mut contract = Proxy::new(account_id.clone());
+    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    contract.create_reporter(account_id.clone(), 2);
+    contract.create_address(address_id.clone(), proxy_contract::Category::MiningPool, 11);
+}
