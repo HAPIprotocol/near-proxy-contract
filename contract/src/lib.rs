@@ -7,6 +7,7 @@ use near_sdk::collections::LookupMap;
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(crate = "near_sdk::serde")]
 pub enum Category {
+    None,
     // Wallet service - custodial or mixed wallets
     WalletService,
     // Merchant service
