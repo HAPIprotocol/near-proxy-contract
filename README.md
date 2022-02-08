@@ -19,15 +19,15 @@ Then using launchpad5.boca.testnet as accountId
 Create constants
 ```
 export NEAR_ENV=testnet
-export CONTRACT_ID=proxy.boca.testnet
-export OWNER_ID=boca.testnet
+export CONTRACT_ID=proxy.contracts.sergei24.testnet
+export OWNER_ID=sergei24.testnet
 ```
 
 First of all - you will need to compile the wasm file of contracts and then deploy it like that
 ```
 cargo build --release --target wasm32-unknown-unknown
 
-near deploy $CONTRACT_ID --wasmFile=contract/target/wasm32-unknown-unknown/release/proxy_contract.wasm
+near deploy $CONTRACT_ID --wasmFile=contract/res/proxy_contract_local.wasm
 ```
 Then initialize contract with command where OWNER_ID is your admin UI account. 
 

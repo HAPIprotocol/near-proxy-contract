@@ -3,7 +3,7 @@ use near_sdk::test_utils::{accounts, VMContextBuilder};
 use near_sdk::testing_env;
 use near_sdk::AccountId;
 use near_sdk::MockedBlockchain;
-use proxy_contract::Proxy;
+use proxy_contract::{Proxy, Category};
 
 #[test]
 #[should_panic(expected = "HapiProxy: Only the owner may call this method")]
@@ -109,10 +109,10 @@ fn test_get_address() {
     let mut contract = Proxy::new(account_id.clone());
     testing_env!(context.predecessor_account_id(accounts(0)).build());
     contract.create_reporter(account_id.clone(), 2);
-    contract.create_address(address_id.clone(), proxy_contract::Category::MiningPool, 7);
+    contract.create_address(address_id.clone(), Category::MiningPool, 7);
     assert_eq!(
         contract.get_address(address_id),
-        (proxy_contract::Category::MiningPool, 7),
+        (Category::MiningPool, 7),
         "Address not writed normally"
     );
 }
@@ -126,12 +126,11 @@ fn test_invalid_permission_level() {
     let mut contract = Proxy::new(account_id.clone());
     testing_env!(context.predecessor_account_id(accounts(0)).build());
     contract.create_reporter(account_id.clone(), 1);
-    contract.create_address(address_id.clone(), proxy_contract::Category::MiningPool, 7);
+    contract.create_address(address_id.clone(), Category::MiningPool, 7);
     contract.get_address(address_id);
 }
 
 #[test]
-#[should_panic(expected = "HapiProxy: Address does not exist")]
 fn test_get_wrong_address() {
     let mut context = VMContextBuilder::new();
     let account_id: AccountId = "alice".to_string();
@@ -140,8 +139,9 @@ fn test_get_wrong_address() {
     let mut contract = Proxy::new(account_id.clone());
     testing_env!(context.predecessor_account_id(accounts(0)).build());
     contract.create_reporter(account_id.clone(), 2);
-    contract.create_address(address_id.clone(), proxy_contract::Category::MiningPool, 7);
-    contract.get_address(wrong_address.clone());
+    contract.create_address(address_id.clone(), Category::MiningPool, 7);
+    let address_info = contract.get_address(wrong_address.clone());
+    assert_eq!((Category::None, 0), address_info, "Test failed");
 }
 
 #[test]
@@ -153,5 +153,5 @@ fn test_create_address_wrong_risk() {
     let mut contract = Proxy::new(account_id.clone());
     testing_env!(context.predecessor_account_id(accounts(0)).build());
     contract.create_reporter(account_id.clone(), 2);
-    contract.create_address(address_id.clone(), proxy_contract::Category::MiningPool, 11);
+    contract.create_address(address_id.clone(), Category::MiningPool, 11);
 }

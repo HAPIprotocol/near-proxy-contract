@@ -92,6 +92,7 @@ impl Proxy {
         self.owner_id = owner_id;
     }
 
+    #[private]
     pub fn create_reporter(&mut self, address: AccountId, permission_level: u8) -> Option<u8> {
         assert!(
             permission_level <= MAX_PERMISSION_LEVEL,
@@ -151,11 +152,11 @@ impl Proxy {
     }
 
     pub fn get_address(&self, address: AccountId) -> (Category, u8) {
-        let address_info = self
-            .addresses
-            .get(&address)
-            .expect("HapiProxy: Address does not exist");
-        (address_info.category, address_info.risk)
+        if let Some(address_info) = self.addresses.get(&address) {
+            (address_info.category, address_info.risk)
+        } else {
+            (Category::None, 0)
+        }
     } // return risk level and category
 
     pub fn update_address(&mut self, address: AccountId, category: Category, risk: u8) {
