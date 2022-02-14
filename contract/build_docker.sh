@@ -5,7 +5,7 @@ set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-NAME="proxy_contract"
+NAME="contract"
 
 if docker ps -a --format '{{.Names}}' | grep -Eq "^${NAME}\$"; then
     echo "Container exists"
@@ -14,7 +14,7 @@ docker create \
      --mount type=bind,source=$DIR/..,target=/host \
      --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
      --name=$NAME \
-     -w /host/proxy_contract \
+     -w /host/contract \
      -e RUSTFLAGS='-C link-arg=-s' \
      -it \
      nearprotocol/contract-builder \
