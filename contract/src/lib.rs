@@ -92,7 +92,6 @@ impl Proxy {
         self.owner_id = owner_id;
     }
 
-    #[private]
     pub fn create_reporter(&mut self, address: AccountId, permission_level: u8) -> Option<u8> {
         assert!(
             permission_level <= MAX_PERMISSION_LEVEL,
