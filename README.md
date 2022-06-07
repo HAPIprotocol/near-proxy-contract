@@ -27,7 +27,7 @@ First of all - you will need to compile the wasm file of contracts and then depl
 ```
 cargo build --release --target wasm32-unknown-unknown
 
-near deploy $CONTRACT_ID --wasmFile=contract/res/proxy_contract_local.wasm
+near deploy $CONTRACT_ID --wasmFile=contract/res/proxy_contract_release.wasm
 ```
 Then initialize contract with command where OWNER_ID is your admin UI account. 
 

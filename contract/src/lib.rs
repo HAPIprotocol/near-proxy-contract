@@ -176,26 +176,32 @@ impl Proxy {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
 
     use crate::Category;
     use near_sdk::test_utils::{accounts, VMContextBuilder};
     use near_sdk::testing_env;
-    use near_sdk::MockedBlockchain;
+
+    pub fn get_account_id(account_id: &str) -> AccountId {
+        AccountId::from_str(account_id)
+            .expect(format!("ERR: can't get account_id from str: {}", account_id).as_str())
+    }
 
     #[test]
     fn test_new() {
-        let account_id: AccountId = "tester".to_string();
+        let account_id: AccountId = get_account_id("tester");
         let contract = Proxy::new(account_id.clone());
-        assert_eq!(contract.owner_id, "tester");
+        assert_eq!(contract.owner_id, account_id);
     }
 
     #[test]
     fn test_get_reporter() {
         let mut context = VMContextBuilder::new();
         let test_level: u8 = 1;
-        let account_id: AccountId = "alice".to_string();
-        let reporter_id: AccountId = "reporter".to_string();
+        let account_id: AccountId = get_account_id("alice");
+        let reporter_id: AccountId = get_account_id("reporter");
         let mut contract = Proxy::new(account_id.clone());
         testing_env!(context.predecessor_account_id(accounts(0)).build());
 
@@ -211,8 +217,8 @@ mod tests {
     #[test]
     fn test_update_reporter() {
         let mut context = VMContextBuilder::new();
-        let account_id: AccountId = "alice".to_string();
-        let reporter_id: AccountId = "reporter".to_string();
+        let account_id: AccountId = get_account_id("alice");
+        let reporter_id: AccountId = get_account_id("reporter");
         let mut contract = Proxy::new(account_id.clone());
         testing_env!(context.predecessor_account_id(accounts(0)).build());
         contract.create_reporter(reporter_id.clone(), 1);
@@ -232,8 +238,8 @@ mod tests {
     #[test]
     fn test_get_address() {
         let mut context = VMContextBuilder::new();
-        let account_id: AccountId = "alice".to_string();
-        let address_id: AccountId = "MiningPool".to_string();
+        let account_id: AccountId = get_account_id("alice");
+        let address_id: AccountId = get_account_id("mining.pool");
         let mut contract = Proxy::new(account_id.clone());
         testing_env!(context.predecessor_account_id(accounts(0)).build());
         contract.create_reporter(account_id.clone(), 2);
