@@ -12,15 +12,15 @@ Create sale preparing process
 For creating the new account for deploying contract use next command 
 
 ```
-near create-account proxy.boca.testnet --masterAccount boca.testnet --initialBalance 10
+near create-account $CONTRACT_ID --masterAccount $OWNER_ID --initialBalance 10
 ```
 Then using launchpad5.boca.testnet as accountId
 
 Create constants
 ```
 export NEAR_ENV=testnet
-export CONTRACT_ID=proxy.contracts.sergei24.testnet
-export OWNER_ID=sergei24.testnet
+export CONTRACT_ID=contract.hapi-test.testnet
+export OWNER_ID=hapi-test.testnet
 ```
 
 First of all - you will need to compile the wasm file of contracts and then deploy it like that

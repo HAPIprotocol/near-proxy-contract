@@ -1,6 +1,6 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{env, near_bindgen, AccountId};
+use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault};
 
 use near_sdk::collections::LookupMap;
 
@@ -14,10 +14,8 @@ pub enum Category {
     MerchantService,
     // Mining pool
     MiningPool,
-    // Low risk exchange - Exchange with high KYC standards
-    LowRiskExchange,
-    // Medium eisk exchange
-    MediumRiskExchange,
+    // Exchange
+    Exchange,
     // DeFi application
     DeFi,
     // OTC Broker
@@ -56,7 +54,7 @@ pub struct AddressInfo {
 }
 
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Proxy {
     owner_id: AccountId,
     pub reporters: LookupMap<AccountId, u8>,
@@ -65,12 +63,6 @@ pub struct Proxy {
 
 const MAX_RISK: u8 = 10;
 const MAX_PERMISSION_LEVEL: u8 = 2;
-
-impl Default for Proxy {
-    fn default() -> Self {
-        env::panic(b"The contract is not initialized.")
-    }
-}
 
 #[near_bindgen]
 impl Proxy {
