@@ -95,7 +95,7 @@ impl Proxy {
             "HapiProxy: Only the owner may call this method"
         );
         assert!(
-            self.reporters.contains_key(&address) == false,
+            !self.reporters.contains_key(&address),
             "HapiProxy: Reporter already exist"
         );
 
@@ -134,7 +134,7 @@ impl Proxy {
         );
         assert!(risk <= MAX_RISK, "HapiProxy: Invalid risk");
         assert!(
-            self.addresses.contains_key(&address) == false,
+            !self.addresses.contains_key(&address),
             "HapiProxy: Address already exist"
         );
         let address_info = AddressInfo { category, risk };
@@ -178,7 +178,7 @@ mod tests {
 
     pub fn get_account_id(account_id: &str) -> AccountId {
         AccountId::from_str(account_id)
-            .expect(format!("ERR: can't get account_id from str: {}", account_id).as_str())
+            .unwrap_or_else(|_| panic!("ERR: can't get account_id from str: {account_id}"))
     }
 
     #[test]
@@ -194,7 +194,7 @@ mod tests {
         let test_level: u8 = 1;
         let account_id: AccountId = get_account_id("alice");
         let reporter_id: AccountId = get_account_id("reporter");
-        let mut contract = Proxy::new(account_id.clone());
+        let mut contract = Proxy::new(account_id);
         testing_env!(context.predecessor_account_id(accounts(0)).build());
 
         contract.create_reporter(reporter_id.clone(), test_level);
@@ -202,7 +202,7 @@ mod tests {
             contract.get_reporter(reporter_id.clone()),
             test_level,
             "reporter value is: {}",
-            contract.get_reporter(reporter_id).to_string()
+            contract.get_reporter(reporter_id)
         );
     }
 
@@ -211,7 +211,7 @@ mod tests {
         let mut context = VMContextBuilder::new();
         let account_id: AccountId = get_account_id("alice");
         let reporter_id: AccountId = get_account_id("reporter");
-        let mut contract = Proxy::new(account_id.clone());
+        let mut contract = Proxy::new(account_id);
         testing_env!(context.predecessor_account_id(accounts(0)).build());
         contract.create_reporter(reporter_id.clone(), 1);
         assert!(
@@ -223,7 +223,7 @@ mod tests {
             contract.get_reporter(reporter_id.clone()),
             2,
             "reporter value is: {}",
-            contract.get_reporter(reporter_id).to_string()
+            contract.get_reporter(reporter_id)
         );
     }
 
@@ -234,7 +234,7 @@ mod tests {
         let address_id: AccountId = get_account_id("mining.pool");
         let mut contract = Proxy::new(account_id.clone());
         testing_env!(context.predecessor_account_id(accounts(0)).build());
-        contract.create_reporter(account_id.clone(), 2);
+        contract.create_reporter(account_id, 2);
         contract.create_address(address_id.clone(), Category::MiningPool, 7);
         assert_eq!(
             contract.get_address(address_id),
