@@ -4,7 +4,7 @@
 * Refactoring
 * Fix roles
 * Fix tests
-* Update rust version 
+* Update rust version in docker build
 
 ## v0.1.1
 * Update dependencies

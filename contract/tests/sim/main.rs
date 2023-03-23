@@ -4,7 +4,7 @@ use std::str::FromStr;
 use near_sdk::test_utils::{accounts, VMContextBuilder};
 use near_sdk::testing_env;
 use near_sdk::AccountId;
-use proxy_contract::{Category, Proxy};
+use proxy_contract::{Category, Proxy, ROLES};
 
 pub fn get_account_id(account_id: &str) -> AccountId {
     AccountId::from_str(account_id)
@@ -22,7 +22,7 @@ fn test_change_owner() {
     testing_env!(context.predecessor_account_id(owner_id).build());
 
     contract.change_owner(second_account_id);
-    contract.create_reporter(reporter_id.clone(), 1);
+    contract.create_reporter(reporter_id.clone(), ROLES::REPORTER as u8);
 }
 
 #[test]
@@ -33,10 +33,10 @@ fn test_get_reporter() {
     let mut contract = Proxy::new(owner_id.clone());
     testing_env!(context.predecessor_account_id(owner_id).build());
 
-    contract.create_reporter(reporter_id.clone(), 1);
+    contract.create_reporter(reporter_id.clone(), ROLES::REPORTER as u8);
     assert_eq!(
         contract.get_reporter(reporter_id.clone()),
-        1,
+        ROLES::REPORTER as u8,
         "reporter value is: {}",
         contract.get_reporter(reporter_id)
     );
@@ -51,8 +51,8 @@ fn test_twice_create_reporter() {
     let mut contract = Proxy::new(owner_id.clone());
     testing_env!(context.predecessor_account_id(owner_id).build());
 
-    contract.create_reporter(reporter_id.clone(), 1);
-    contract.create_reporter(reporter_id, 1);
+    contract.create_reporter(reporter_id.clone(), ROLES::REPORTER as u8);
+    contract.create_reporter(reporter_id, ROLES::REPORTER as u8);
 }
 
 #[test]
@@ -63,15 +63,15 @@ fn test_update_reporter() {
     testing_env!(context.predecessor_account_id(owner_id.clone()).build());
 
     let mut contract = Proxy::new(owner_id);
-    contract.create_reporter(reporter_id.clone(), 1);
+    contract.create_reporter(reporter_id.clone(), ROLES::REPORTER as u8);
     assert!(
-        contract.update_reporter(reporter_id.clone(), 2),
+        contract.update_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8),
         "Reporter update failed"
     );
 
     assert_eq!(
         contract.get_reporter(reporter_id.clone()),
-        2,
+        ROLES::AUTHORITY as u8,
         "reporter value is: {}",
         contract.get_reporter(reporter_id)
     );
@@ -86,17 +86,17 @@ fn test_not_owner_updates_reporter() {
     testing_env!(context.predecessor_account_id(owner_id.clone()).build());
 
     let mut contract = Proxy::new(owner_id);
-    contract.create_reporter(reporter_id.clone(), 1);
+    contract.create_reporter(reporter_id.clone(), ROLES::REPORTER as u8);
 
     testing_env!(context.predecessor_account_id(reporter_id.clone()).build());
     assert!(
-        contract.update_reporter(reporter_id.clone(), 2),
+        contract.update_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8),
         "Reporter update failed"
     );
 
     assert_eq!(
         contract.get_reporter(reporter_id.clone()),
-        1,
+        ROLES::REPORTER as u8,
         "reporter value is: {}",
         contract.get_reporter(reporter_id)
     );
@@ -111,7 +111,7 @@ fn test_get_address() {
     testing_env!(context.predecessor_account_id(owner_id.clone()).build());
 
     let mut contract = Proxy::new(owner_id);
-    contract.create_reporter(reporter_id.clone(), 1);
+    contract.create_reporter(reporter_id.clone(), ROLES::REPORTER as u8);
 
     testing_env!(context.predecessor_account_id(reporter_id).build());
     contract.create_address(address_id.clone(), Category::MiningPool, 7);
@@ -143,7 +143,7 @@ fn test_create_address_wrong_risk() {
     let address_id: AccountId = get_account_id("mining.pool");
     let mut contract = Proxy::new(owner_id.clone());
     testing_env!(context.predecessor_account_id(owner_id).build());
-    contract.create_reporter(reporter_id.clone(), 2);
+    contract.create_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8);
 
     testing_env!(context.predecessor_account_id(reporter_id).build());
     contract.create_address(address_id, Category::MiningPool, 11);

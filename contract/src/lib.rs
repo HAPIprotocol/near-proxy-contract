@@ -60,9 +60,11 @@ pub struct Proxy {
     pub reporters: LookupMap<AccountId, u8>,
     pub addresses: LookupMap<AccountId, AddressInfo>,
 }
-
-const REPORTER: u8 = 1;
-const AUTHORITY: u8 = 2;
+#[derive(PartialEq)]
+pub enum ROLES {
+    REPORTER = 1,
+    AUTHORITY = 2,
+}
 
 const MAX_RISK: u8 = 10;
 
@@ -87,7 +89,7 @@ impl Proxy {
     }
 
     pub fn create_reporter(&mut self, address: AccountId, permission_level: u8) -> Option<u8> {
-        self.check_permission_level(&permission_level);
+        self.validate_permission_level(&permission_level);
 
         self.assert_owner_or_authority();
 
@@ -102,27 +104,24 @@ impl Proxy {
     pub fn get_reporter(&self, address: AccountId) -> u8 {
         self.reporters
             .get(&address)
-            .expect("HapiProxy: Reporter does not exist_1")
+            .expect("HapiProxy: This account is not a reporter")
     } // return permission level
 
     pub fn update_reporter(&mut self, address: AccountId, permission_level: u8) -> bool {
-        self.check_permission_level(&permission_level);
+        self.validate_permission_level(&permission_level);
 
         self.assert_owner_or_authority();
 
         assert!(
             self.reporters.contains_key(&address),
-            "HapiProxy: Reporter does not exist"
+            "HapiProxy: This account is not a reporter"
         );
         self.reporters.insert(&address, &permission_level);
         true
     }
 
     pub fn create_address(&mut self, address: AccountId, category: Category, risk: u8) -> bool {
-        require!(
-            self.reporters.contains_key(&env::predecessor_account_id()),
-            "HapiProxy: Invalid permission level"
-        );
+        self.assert_reporter();
 
         assert!(risk <= MAX_RISK, "HapiProxy: Invalid risk");
         assert!(
@@ -143,10 +142,8 @@ impl Proxy {
     } // return risk level and category
 
     pub fn update_address(&mut self, address: AccountId, category: Category, risk: u8) {
-        require!(
-            self.reporters.contains_key(&env::predecessor_account_id()),
-            "HapiProxy: Invalid permission level"
-        );
+        self.assert_reporter();
+
         assert!(risk <= MAX_RISK, "HapiProxy: Invalid risk");
         assert!(
             self.addresses.contains_key(&address),
@@ -156,13 +153,15 @@ impl Proxy {
         self.addresses.insert(&address, &address_info);
     }
 }
+
 impl Proxy {
-    pub fn check_permission_level(&self, permission_level: &u8) {
+    pub fn validate_permission_level(&self, permission_level: &u8) {
         assert!(
-            permission_level.eq(&REPORTER) || permission_level.eq(&AUTHORITY),
+            permission_level.eq(&ROLES::REPORTER) || permission_level.eq(&ROLES::AUTHORITY),
             "HapiProxy: Invalid permission level"
         );
     }
+
     pub fn assert_owner_or_authority(&self) {
         let predecessor = env::predecessor_account_id();
 
@@ -172,9 +171,25 @@ impl Proxy {
                     .reporters
                     .get(&predecessor)
                     .unwrap_or_default()
-                    .eq(&AUTHORITY),
+                    .eq(&ROLES::AUTHORITY),
             "HapiProxy: Only the owner or authority may call this method"
         );
+    }
+
+    pub fn assert_reporter(&self) {
+        require!(
+            self.reporters.contains_key(&env::predecessor_account_id()),
+            "HapiProxy: You must be a reporter to perform this action"
+        );
+    }
+}
+
+impl PartialEq<ROLES> for u8 {
+    fn eq(&self, other: &ROLES) -> bool {
+        match other {
+            ROLES::REPORTER => *self == 1_u8,
+            ROLES::AUTHORITY => *self == 2_u8,
+        }
     }
 }
 
@@ -208,10 +223,10 @@ mod tests {
         let mut contract = Proxy::new(owner_id.clone());
         testing_env!(context.predecessor_account_id(owner_id).build());
 
-        contract.create_reporter(reporter_id.clone(), REPORTER);
+        contract.create_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8);
         assert_eq!(
             contract.get_reporter(reporter_id.clone()),
-            REPORTER,
+            ROLES::AUTHORITY as u8,
             "reporter permission_level is: {}",
             contract.get_reporter(reporter_id)
         );
@@ -224,15 +239,15 @@ mod tests {
         let reporter_id: AccountId = get_account_id("reporter");
         let mut contract = Proxy::new(owner_id.clone());
         testing_env!(context.predecessor_account_id(owner_id).build());
-        contract.create_reporter(reporter_id.clone(), REPORTER);
+        contract.create_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8);
         assert!(
-            contract.update_reporter(reporter_id.clone(), AUTHORITY),
+            contract.update_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8),
             "Reporter update failed"
         );
 
         assert_eq!(
             contract.get_reporter(reporter_id.clone()),
-            AUTHORITY,
+            ROLES::AUTHORITY as u8,
             "reporter value is: {}",
             contract.get_reporter(reporter_id)
         );
@@ -247,7 +262,7 @@ mod tests {
         let mut contract = Proxy::new(owner_id.clone());
         testing_env!(context.predecessor_account_id(owner_id).build());
 
-        contract.create_reporter(reporter_id.clone(), REPORTER);
+        contract.create_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8);
         testing_env!(context.predecessor_account_id(reporter_id).build());
         contract.create_address(address_id.clone(), Category::MiningPool, 7);
 
