@@ -12,38 +12,31 @@ pub fn get_account_id(account_id: &str) -> AccountId {
 }
 
 #[test]
-#[should_panic(expected = "HapiProxy: Only the owner may call this method")]
+#[should_panic(expected = "HapiProxy: Only the owner or authority may call this method")]
 fn test_change_owner() {
     let mut context = VMContextBuilder::new();
-    let test_level: u8 = 1;
-    let account_id: AccountId = get_account_id("alice");
+    let owner_id: AccountId = get_account_id("alice");
     let second_account_id: AccountId = get_account_id("james.bond");
     let reporter_id: AccountId = get_account_id("reporter");
-    let mut contract = Proxy::new(account_id);
-    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    let mut contract = Proxy::new(owner_id.clone());
+    testing_env!(context.predecessor_account_id(owner_id).build());
+
     contract.change_owner(second_account_id);
-    contract.create_reporter(reporter_id.clone(), test_level);
-    assert_eq!(
-        contract.get_reporter(reporter_id.clone()),
-        test_level,
-        "reporter value is: {}",
-        contract.get_reporter(reporter_id)
-    );
+    contract.create_reporter(reporter_id.clone(), 1);
 }
 
 #[test]
 fn test_get_reporter() {
     let mut context = VMContextBuilder::new();
-    let test_level: u8 = 1;
-    let account_id: AccountId = get_account_id("alice");
+    let owner_id: AccountId = get_account_id("owner");
     let reporter_id: AccountId = get_account_id("reporter");
-    let mut contract = Proxy::new(account_id);
-    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    let mut contract = Proxy::new(owner_id.clone());
+    testing_env!(context.predecessor_account_id(owner_id).build());
 
-    contract.create_reporter(reporter_id.clone(), test_level);
+    contract.create_reporter(reporter_id.clone(), 1);
     assert_eq!(
         contract.get_reporter(reporter_id.clone()),
-        test_level,
+        1,
         "reporter value is: {}",
         contract.get_reporter(reporter_id)
     );
@@ -53,23 +46,23 @@ fn test_get_reporter() {
 #[should_panic(expected = "HapiProxy: Reporter already exist")]
 fn test_twice_create_reporter() {
     let mut context = VMContextBuilder::new();
-    let test_level: u8 = 1;
-    let account_id: AccountId = get_account_id("alice");
+    let owner_id: AccountId = get_account_id("owner");
     let reporter_id: AccountId = get_account_id("reporter");
-    let mut contract = Proxy::new(account_id);
-    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    let mut contract = Proxy::new(owner_id.clone());
+    testing_env!(context.predecessor_account_id(owner_id).build());
 
-    contract.create_reporter(reporter_id.clone(), test_level);
-    contract.create_reporter(reporter_id, test_level);
+    contract.create_reporter(reporter_id.clone(), 1);
+    contract.create_reporter(reporter_id, 1);
 }
 
 #[test]
 fn test_update_reporter() {
     let mut context = VMContextBuilder::new();
-    let account_id: AccountId = get_account_id("alice");
+    let owner_id: AccountId = get_account_id("owner");
     let reporter_id: AccountId = get_account_id("reporter");
-    let mut contract = Proxy::new(account_id);
-    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    testing_env!(context.predecessor_account_id(owner_id.clone()).build());
+
+    let mut contract = Proxy::new(owner_id);
     contract.create_reporter(reporter_id.clone(), 1);
     assert!(
         contract.update_reporter(reporter_id.clone(), 2),
@@ -85,15 +78,17 @@ fn test_update_reporter() {
 }
 
 #[test]
-#[should_panic(expected = "HapiProxy: Only the owner may call this method")]
+#[should_panic(expected = "HapiProxy: Only the owner or authority may call this method")]
 fn test_not_owner_updates_reporter() {
     let mut context = VMContextBuilder::new();
-    let account_id: AccountId = get_account_id("alice");
+    let owner_id: AccountId = get_account_id("owner");
     let reporter_id: AccountId = get_account_id("reporter");
-    let mut contract = Proxy::new(account_id);
-    testing_env!(context.predecessor_account_id(accounts(0)).build());
+    testing_env!(context.predecessor_account_id(owner_id.clone()).build());
+
+    let mut contract = Proxy::new(owner_id);
     contract.create_reporter(reporter_id.clone(), 1);
-    testing_env!(context.predecessor_account_id(accounts(1)).build());
+
+    testing_env!(context.predecessor_account_id(reporter_id.clone()).build());
     assert!(
         contract.update_reporter(reporter_id.clone(), 2),
         "Reporter update failed"
@@ -101,7 +96,7 @@ fn test_not_owner_updates_reporter() {
 
     assert_eq!(
         contract.get_reporter(reporter_id.clone()),
-        2,
+        1,
         "reporter value is: {}",
         contract.get_reporter(reporter_id)
     );
@@ -110,16 +105,20 @@ fn test_not_owner_updates_reporter() {
 #[test]
 fn test_get_address() {
     let mut context = VMContextBuilder::new();
-    let account_id: AccountId = get_account_id("alice");
+    let owner_id: AccountId = get_account_id("owner");
+    let reporter_id: AccountId = get_account_id("reporter");
     let address_id: AccountId = get_account_id("mining.pool");
-    let mut contract = Proxy::new(account_id.clone());
-    testing_env!(context.predecessor_account_id(accounts(0)).build());
-    contract.create_reporter(account_id, 2);
+    testing_env!(context.predecessor_account_id(owner_id.clone()).build());
+
+    let mut contract = Proxy::new(owner_id);
+    contract.create_reporter(reporter_id.clone(), 1);
+
+    testing_env!(context.predecessor_account_id(reporter_id).build());
     contract.create_address(address_id.clone(), Category::MiningPool, 7);
     assert_eq!(
         contract.get_address(address_id),
         (Category::MiningPool, 7),
-        "Address not writed normally"
+        "Address not added"
     );
 }
 
@@ -127,23 +126,25 @@ fn test_get_address() {
 #[should_panic(expected = "HapiProxy: Invalid permission level")]
 fn test_invalid_permission_level() {
     let mut context = VMContextBuilder::new();
-    let account_id: AccountId = get_account_id("alice");
-    let address_id: AccountId = get_account_id("mining.pool");
-    let mut contract = Proxy::new(account_id.clone());
+    let owner_id: AccountId = get_account_id("owner");
+    let reporter_id: AccountId = get_account_id("reporter");
+
+    let mut contract = Proxy::new(owner_id.clone());
     testing_env!(context.predecessor_account_id(accounts(0)).build());
-    contract.create_reporter(account_id, 1);
-    contract.create_address(address_id.clone(), Category::MiningPool, 7);
-    contract.get_address(address_id);
+    contract.create_reporter(reporter_id, 3);
 }
 
 #[test]
 #[should_panic(expected = "HapiProxy: Invalid risk")]
 fn test_create_address_wrong_risk() {
     let mut context = VMContextBuilder::new();
-    let account_id: AccountId = get_account_id("alice");
+    let owner_id: AccountId = get_account_id("owner");
+    let reporter_id: AccountId = get_account_id("reporter");
     let address_id: AccountId = get_account_id("mining.pool");
-    let mut contract = Proxy::new(account_id.clone());
-    testing_env!(context.predecessor_account_id(accounts(0)).build());
-    contract.create_reporter(account_id, 2);
+    let mut contract = Proxy::new(owner_id.clone());
+    testing_env!(context.predecessor_account_id(owner_id).build());
+    contract.create_reporter(reporter_id.clone(), 2);
+
+    testing_env!(context.predecessor_account_id(reporter_id).build());
     contract.create_address(address_id, Category::MiningPool, 11);
 }
