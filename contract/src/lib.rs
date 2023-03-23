@@ -61,9 +61,9 @@ pub struct Proxy {
     pub addresses: LookupMap<AccountId, AddressInfo>,
 }
 #[derive(PartialEq)]
-pub enum ROLES {
-    REPORTER = 1,
-    AUTHORITY = 2,
+pub enum Roles {
+    Reporter = 1,
+    Authority = 2,
 }
 
 const MAX_RISK: u8 = 10;
@@ -157,7 +157,7 @@ impl Proxy {
 impl Proxy {
     pub fn validate_permission_level(&self, permission_level: &u8) {
         assert!(
-            permission_level.eq(&ROLES::REPORTER) || permission_level.eq(&ROLES::AUTHORITY),
+            permission_level.eq(&Roles::Reporter) || permission_level.eq(&Roles::Authority),
             "HapiProxy: Invalid permission level"
         );
     }
@@ -171,7 +171,7 @@ impl Proxy {
                     .reporters
                     .get(&predecessor)
                     .unwrap_or_default()
-                    .eq(&ROLES::AUTHORITY),
+                    .eq(&Roles::Authority),
             "HapiProxy: Only the owner or authority may call this method"
         );
     }
@@ -184,11 +184,11 @@ impl Proxy {
     }
 }
 
-impl PartialEq<ROLES> for u8 {
-    fn eq(&self, other: &ROLES) -> bool {
+impl PartialEq<Roles> for u8 {
+    fn eq(&self, other: &Roles) -> bool {
         match other {
-            ROLES::REPORTER => *self == 1_u8,
-            ROLES::AUTHORITY => *self == 2_u8,
+            Roles::Reporter => *self == 1_u8,
+            Roles::Authority => *self == 2_u8,
         }
     }
 }
@@ -223,10 +223,10 @@ mod tests {
         let mut contract = Proxy::new(owner_id.clone());
         testing_env!(context.predecessor_account_id(owner_id).build());
 
-        contract.create_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8);
+        contract.create_reporter(reporter_id.clone(), Roles::Authority as u8);
         assert_eq!(
             contract.get_reporter(reporter_id.clone()),
-            ROLES::AUTHORITY as u8,
+            Roles::Authority as u8,
             "reporter permission_level is: {}",
             contract.get_reporter(reporter_id)
         );
@@ -239,15 +239,15 @@ mod tests {
         let reporter_id: AccountId = get_account_id("reporter");
         let mut contract = Proxy::new(owner_id.clone());
         testing_env!(context.predecessor_account_id(owner_id).build());
-        contract.create_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8);
+        contract.create_reporter(reporter_id.clone(), Roles::Authority as u8);
         assert!(
-            contract.update_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8),
+            contract.update_reporter(reporter_id.clone(), Roles::Authority as u8),
             "Reporter update failed"
         );
 
         assert_eq!(
             contract.get_reporter(reporter_id.clone()),
-            ROLES::AUTHORITY as u8,
+            Roles::Authority as u8,
             "reporter value is: {}",
             contract.get_reporter(reporter_id)
         );
@@ -262,7 +262,7 @@ mod tests {
         let mut contract = Proxy::new(owner_id.clone());
         testing_env!(context.predecessor_account_id(owner_id).build());
 
-        contract.create_reporter(reporter_id.clone(), ROLES::AUTHORITY as u8);
+        contract.create_reporter(reporter_id.clone(), Roles::Authority as u8);
         testing_env!(context.predecessor_account_id(reporter_id).build());
         contract.create_address(address_id.clone(), Category::MiningPool, 7);
 
