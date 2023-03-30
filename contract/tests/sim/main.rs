@@ -22,7 +22,7 @@ fn test_change_owner() {
     testing_env!(context.predecessor_account_id(owner_id).build());
 
     contract.change_owner(second_account_id);
-    contract.create_reporter(reporter_id.clone(), Roles::Reporter as u8);
+    contract.create_reporter(reporter_id, Roles::Reporter as u8);
 }
 
 #[test]
@@ -129,7 +129,7 @@ fn test_invalid_permission_level() {
     let owner_id: AccountId = get_account_id("owner");
     let reporter_id: AccountId = get_account_id("reporter");
 
-    let mut contract = Proxy::new(owner_id.clone());
+    let mut contract = Proxy::new(owner_id);
     testing_env!(context.predecessor_account_id(accounts(0)).build());
     contract.create_reporter(reporter_id, 3);
 }
